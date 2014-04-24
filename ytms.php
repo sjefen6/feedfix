@@ -32,7 +32,7 @@ if (empty($_GET['username'])){
 		
 		$feed->entry[$i]->content = "<iframe id=\"ytplayer\" type=\"text/html\" width=\"640\" height=\"390\" " .
 			"src=\"http://www.youtube.com/embed/" . $videoId . "?autoplay=0&amp;origin=http://feedfix.gbt.cc\" " .
-			"frameborder=\"0\"></iframe>\n<br>" . $feed->entry[$i]->content;
+			"frameborder=\"0\" allowfullscreen></iframe>\n<br>" . $feed->entry[$i]->content;
 	}
 	
 	echo $feed->asXML();

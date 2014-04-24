@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 	<head>
-		<title>Title of the document</title>
+		<title>Fixes for feeds</title>
 	</head>
 	<body>
 		<h1>Fixes for feeds</h1>
@@ -14,5 +14,10 @@
 		<p>Adds a player to the My Subscriptions feed</p>
 		<b>Params:</b>
 		<p>(Required) username=&lt;username&gt; - Sets the username for the target feed</p>
+                <h2>Feed title filter - <a href="/titlefilter.php">titlefilter.php</a></h2>
+                <p>This filters a feed to only include items with a title containing a string from a text file with line separated strings. Good places to store the textfile would be publicly on google drive, dropbox or webserver.</p>
+                <b>Params:</b>
+                <p>(Required) feed=&lt;url&gt; - The target feed</p>
+                <p>(Required) filter=&lt;url&gt; - The list of words to let through</p>
 	</body>
 </html>
