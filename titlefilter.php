@@ -1,6 +1,4 @@
 <?php
-error_reporting( E_ALL );
-
 ini_set("user_agent","Feedfix; +http://feedfix.gbt.cc/titlefilter.php (PHP " . phpversion() . ")");
 
 function superexplode($csv, $delimiter = ","){
