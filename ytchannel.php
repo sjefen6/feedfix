@@ -1,26 +1,63 @@
 <?php
 require("ytapikey.php"); //define("API_KEY","YOUR API KEY");
 
-if(!empty($_GET['channel'])){
-	$channel = $_GET['channel'];
-	$url = "https://www.googleapis.com/youtube/v3/channels?part=snippet%2C+contentDetails&id=" . $channel . "&key=" . API_KEY;
-	$json = file_get_contents($url);
-	$json = json_decode($json, true);
+$channelid = isset($_GET['channel']) ? $_GET['channel'] : null;
+$playlistid = isset($_GET['playlist']) ? $_GET['playlist'] : null;
+$playlists = array();
 
-	if(count($json["items"]) == 0){
-		header("HTTP/1.0 404 Channel not found");
-		echo "Channel not found";
-		exit;
+function getreq($url){
+	$req = file_get_contents($url);
+	return json_decode($req, true);
+}
+
+function error($message){
+	header("HTTP/1.0 404 " . $message);
+	echo $message;
+	exit;
+}
+
+if($channelid != null){
+	if($_GET['chtype'] == "user"){
+		$channelinfo = getreq("https://www.googleapis.com/youtube/v3/channels?part=id%2C+contentDetails&forUsername=" . $channelid . "&key=" . API_KEY );
+	} else {
+		$channelinfo = getreq("https://www.googleapis.com/youtube/v3/channels?part=id%2C+contentDetails&id=" . $channelid . "&key=" . API_KEY );
 	}
 
-	$feedtitle = $json["items"][0]["snippet"]["title"];
-	$feeddesc = $json["items"][0]["snippet"]["description"];
-	$uploadsid = $json["items"][0]["contentDetails"]["relatedPlaylists"]["uploads"];
+	if(count($channelinfo["items"]) == 0){
+		error("Channel not found");
+	}
 
-	$url = "https://www.googleapis.com/youtube/v3/playlistItems?part=+id%2C+snippet%2C+contentDetails%2C+status&maxResults=20&playlistId=" . $uploadsid . "&key=" . API_KEY; 
-        $json = file_get_contents($url);
-        $json = json_decode($json, true);
-	$items = $json["items"];
+	$channelid = $channelinfo["items"][0]["id"];
+
+	foreach($channelinfo["items"][0]["contentDetails"]["relatedPlaylists"] as $name => $id){
+		$playlists[] = array("name" => $name, "id" => $id);
+	}
+
+	do{
+		$playlistinfo = getreq(
+			"https://www.googleapis.com/youtube/v3/playlists?part=snippet&maxResults=50&channelId=" . $channelid .
+			"&key=" . API_KEY .
+			(
+				isset($playlistinfo["nextPageToken"])? "&pageToken=" . $playlistinfo["nextPageToken"] : ""
+			)
+		);
+
+		foreach($playlistinfo["items"] as $playlist){
+			$playlists[] = array("name" => $playlist["snippet"]["title"], "id" => $playlist["id"]);
+		}
+	} while(isset($playlistinfo["nextPageToken"]));
+
+	if(!isset($_GET['chtype'])){
+		$playlistid = $channelinfo["items"][0]["contentDetails"]["relatedPlaylists"]["uploads"];
+	}
+}
+
+if($playlistid != null){
+	$playlist = getreq("https://www.googleapis.com/youtube/v3/playlistItems?part=+id%2C+snippet%2C+contentDetails%2C+status&maxResults=10&playlistId=" . $playlistid . "&key=" . API_KEY);
+	$items = $playlist["items"];
+
+	$feedtitle = $playlist["items"][0]["snippet"]["channelTitle"];
+
 
 header('Content-Type: application/rss+xml; charset=utf-8');
 echo "<?xml version=\"1.0\" encoding=\"utf-8\" ?>\n";
@@ -29,10 +66,9 @@ echo "<?xml version=\"1.0\" encoding=\"utf-8\" ?>\n";
 	xmlns:atom="http://www.w3.org/2005/Atom"
 >
 <channel>
-	<title><?= $feedtitle ?></title>
+	<title>YouTube Playlist</title>
 	<link>https://www.youtube.com/playlist?list=<?= $uploadsid ?></link> 
 	<atom:link href="http://feedfix.gbt.cc/ytchannel.php?channel=<?= $channel ?>" rel="self" type="application/rss+xml" />
-	<description><?= $feeddesc ?></description>
 <?php
 	foreach($items as $item){
 		$title = $item["snippet"]["title"];
@@ -66,15 +102,29 @@ echo "<?xml version=\"1.0\" encoding=\"utf-8\" ?>\n";
 <!DOCTYPE html>
 <html>
 	<head>
-		<title>YouTube channel rssfeed</title>
+		<title>YouTube Feed Generator</title>
 	</head>
 	<body>
-		<p>This generates an rssfeed for channels not covered by the youtube v2 api</p>
-		<p><strong>Example channelid:</strong> https://www.youtube.com/channel/<strong>UC-vIANCum1yBw_4DeJImc0Q</strong></p>
+<?php		if(empty($_GET['channel'])){ ?>
+		<h1>>YouTube channel and playlist feed generator</h1>
+		<p>This generates an rssfeed for YouTube Channels/Playlists via the YouTube API v3. This include channels that are not accessible via the rssfeeds from API v2.</p>
+		<p><strong>Example user:</strong> https://www.youtube.com/user/<strong>acedtect</strong><br>
+		<strong>Example channel:</strong> https://www.youtube.com/channel/<strong>UC-vIANCum1yBw_4DeJImc0Q</strong></p>
 		<form name="input" method="get">
-		YouTube channelid: <input type="text" name="channel">
-		<input type="submit" value="Submit">
+			<input type="radio" name="chtype" value="user" required>User</input>
+			<input type="radio" name="chtype" value="channel">Channel</input><br>
+		YouTube channel: <input type="text" name="channel">
+		<input type="submit" value="Show playlists">
 		</form>
+<?php		} else { ?>
+		<form name="input" method="get">
+		Select playlist to subscribe to:<br>
+<?php			foreach($playlists as $playlist){ ?>
+			<input type="radio" name="playlist" value="<?= $playlist["id"] ?>" required><?= $playlist["name"] ?></input>
+<?php			} ?><br>
+		<input type="submit" value="Get rsseed">
+		</form>
+<?php		} ?>
 	</body>
 </html>
 <?php
