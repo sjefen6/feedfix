@@ -1,4 +1,6 @@
 <?php
+exit; //debug
+
 require("ytapikey.php"); //define("API_KEY","YOUR API KEY");
 
 $channelid = isset($_GET['channel']) ? $_GET['channel'] : null;
@@ -6,8 +8,42 @@ $playlistid = isset($_GET['playlist']) ? $_GET['playlist'] : null;
 $playlists = array();
 
 function getreq($url){
-	$req = file_get_contents($url);
+	$req = file_get_contents($url . "&key=" . API_KEY);
 	return json_decode($req, true);
+}
+
+function pagedreq($url){
+	$items = array();
+
+        do{
+                $page = getreq($url .
+                        (
+                                isset($page["nextPageToken"])? "&pageToken=" . $page["nextPageToken"] : ""
+                        )
+                );
+
+		$items = array_merge($items, $page["items"]);
+
+        } while(isset($page["nextPageToken"]));
+	return $items;
+}
+
+function chunkedreq($url, $param, $array, $chunksize = 50, $pagedreq = true ){
+	$items = array();
+
+	foreach(array_chunk($array, $chunksize) as $chunk){
+		if($pagedreq){
+			$page = pagedreq($url .
+				"&" . $param . "=" .implode(",", $chunk)
+			);
+		} else {
+			$page = getreq($url .
+				"&" . $param . "=" .implode(",", $chunk)
+			)["items"];
+		}
+		$items = array_merge($items, $page);
+	}
+	return $items;
 }
 
 function error($message){
@@ -25,11 +61,13 @@ function htmlplz($str){
 	return '<p>'.$str.'</p>';
 }
 
+$channelid = "UChJRyNlaSpSBUhPLgqdSCzQ";
+
 if($channelid != null){
 	if($_GET['chtype'] == "user"){
-		$channelinfo = getreq("https://www.googleapis.com/youtube/v3/channels?part=id%2C+contentDetails&forUsername=" . $channelid . "&key=" . API_KEY );
+		$channelinfo = getreq("https://www.googleapis.com/youtube/v3/channels?part=id%2C+contentDetails&forUsername=" . $channelid);
 	} else {
-		$channelinfo = getreq("https://www.googleapis.com/youtube/v3/channels?part=id%2C+contentDetails&id=" . $channelid . "&key=" . API_KEY );
+		$channelinfo = getreq("https://www.googleapis.com/youtube/v3/channels?part=id%2C+contentDetails&id=" . $channelid);
 	}
 
 	if(count($channelinfo["items"]) == 0){
@@ -38,27 +76,26 @@ if($channelid != null){
 
 	$channelid = $channelinfo["items"][0]["id"];
 
-	if(!isset($_GET['chtype'])){
-		$playlistid = $channelinfo["items"][0]["contentDetails"]["relatedPlaylists"]["uploads"];
-	} else {
-		foreach($channelinfo["items"][0]["contentDetails"]["relatedPlaylists"] as $name => $id){
-			$playlists[] = array("name" => $name, "id" => $id);
-		}
+        $subschannels = pagedreq("https://www.googleapis.com/youtube/v3/subscriptions?part=snippet&maxResults=50&channelId=" . $channelid );
 
-		do{
-			$playlistinfo = getreq(
-				"https://www.googleapis.com/youtube/v3/playlists?part=snippet&maxResults=50&channelId=" . $channelid .
-				"&key=" . API_KEY .
-				(
-					isset($playlistinfo["nextPageToken"])? "&pageToken=" . $playlistinfo["nextPageToken"] : ""
-				)
-			);
-
-			foreach($playlistinfo["items"] as $playlist){
-				$playlists[] = array("name" => $playlist["snippet"]["title"], "id" => $playlist["id"]);
-			}
-		} while(isset($playlistinfo["nextPageToken"]));
+	foreach($subschannels as $subschannel){
+		$subschannelids[] = $subschannel["snippet"]["resourceId"]["channelId"];
 	}
+
+	$subschinfo = chunkedreq("https://www.googleapis.com/youtube/v3/channels?part=id%2C+contentDetails", "id", $subschannelids);
+
+	foreach ($subschinfo as $subsch){
+		foreach($subsch["contentDetails"]["relatedPlaylists"] as $key => $value){
+			if(in_array($key, array("uploads"))){
+				$playlists[] = $value;
+			}
+		}
+	}
+
+	$items = chunkedreq("https://www.googleapis.com/youtube/v3/playlistItems?part=+id%2C+snippet%2C+contentDetails%2C+status&maxResults=10", "playlistId", $playlists, 1, false);
+
+	var_dump($items);
+	exit;
 }
 
 if($playlistid != null){
