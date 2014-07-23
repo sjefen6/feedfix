@@ -54,6 +54,7 @@ if($channelid != null){
 
 if($playlistid != null){
 	$playlist = getreq("https://www.googleapis.com/youtube/v3/playlistItems?part=+id%2C+snippet%2C+contentDetails%2C+status&maxResults=10&playlistId=" . $playlistid . "&key=" . API_KEY);
+	$playlistdetalis = getreq("https://www.googleapis.com/youtube/v3/playlists?part=snippet&id=" . $playlistid . "&key=" . API_KEY);
 	$items = $playlist["items"];
 
 	$feedtitle = $playlist["items"][0]["snippet"]["channelTitle"];
@@ -66,8 +67,8 @@ echo "<?xml version=\"1.0\" encoding=\"utf-8\" ?>\n";
 	xmlns:atom="http://www.w3.org/2005/Atom"
 >
 <channel>
-	<title>YouTube Playlist</title>
-	<description>Feed generated from a Youtube Playlist</description>
+	<title><?= $playlistdetalis["items"][0]["snippet"]["title"] ?></title>
+	<description><?= $playlistdetalis["items"][0]["snippet"]["description"] ?></description>
 	<link>https://www.youtube.com/playlist?list=<?= $playlistid ?></link> 
 	<atom:link href="http://feedfix.gbt.cc/ytchannel.php?playlist=<?= $playlistid ?>" rel="self" type="application/rss+xml" />
 <?php
