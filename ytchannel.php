@@ -16,6 +16,15 @@ function error($message){
 	exit;
 }
 
+function htmlplz($str){
+	$str = str_replace("\r\n", "\n", $str);
+	$str = str_replace("\r", "\n", $str);
+	$str = preg_replace("/\n{2,}/", "\n\n", $str);
+	$str = preg_replace('/\n(\s*\n)+/', '</p><p>', $str);
+	$str = preg_replace('/\n/', '<br>', $str);
+	return '<p>'.$str.'</p>';
+}
+
 if($channelid != null){
 	if($_GET['chtype'] == "user"){
 		$channelinfo = getreq("https://www.googleapis.com/youtube/v3/channels?part=id%2C+contentDetails&forUsername=" . $channelid . "&key=" . API_KEY );
@@ -74,7 +83,7 @@ echo "<?xml version=\"1.0\" encoding=\"utf-8\" ?>\n";
 <?php
 	foreach($items as $item){
 		$title = $item["snippet"]["title"];
-		$description = $item["snippet"]["description"];
+		$description = htmlplz($item["snippet"]["description"]);
 		$videoid = $item["contentDetails"]["videoId"];
 		$time = new DateTime($item["snippet"]["publishedAt"]);
 		$pubdate = $time->format(DateTime::RSS);
