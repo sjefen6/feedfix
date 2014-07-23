@@ -67,15 +67,16 @@ echo "<?xml version=\"1.0\" encoding=\"utf-8\" ?>\n";
 >
 <channel>
 	<title>YouTube Playlist</title>
-	<link>https://www.youtube.com/playlist?list=<?= $uploadsid ?></link> 
-	<atom:link href="http://feedfix.gbt.cc/ytchannel.php?channel=<?= $channel ?>" rel="self" type="application/rss+xml" />
+	<description>Feed generated from a Youtube Playlist</description>
+	<link>https://www.youtube.com/playlist?list=<?= $playlistid ?></link> 
+	<atom:link href="http://feedfix.gbt.cc/ytchannel.php?playlist=<?= $playlistid ?>" rel="self" type="application/rss+xml" />
 <?php
 	foreach($items as $item){
 		$title = $item["snippet"]["title"];
 		$description = $item["snippet"]["description"];
 		$videoid = $item["contentDetails"]["videoId"];
 		$time = new DateTime($item["snippet"]["publishedAt"]);
-		$pubdate = $time->format(DateTime::RFC822);
+		$pubdate = $time->format(DateTime::RSS);
 ?>
 	<item>
 		<title><?= $title ?></title>
