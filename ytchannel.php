@@ -29,26 +29,26 @@ if($channelid != null){
 
 	$channelid = $channelinfo["items"][0]["id"];
 
-	foreach($channelinfo["items"][0]["contentDetails"]["relatedPlaylists"] as $name => $id){
-		$playlists[] = array("name" => $name, "id" => $id);
-	}
-
-	do{
-		$playlistinfo = getreq(
-			"https://www.googleapis.com/youtube/v3/playlists?part=snippet&maxResults=50&channelId=" . $channelid .
-			"&key=" . API_KEY .
-			(
-				isset($playlistinfo["nextPageToken"])? "&pageToken=" . $playlistinfo["nextPageToken"] : ""
-			)
-		);
-
-		foreach($playlistinfo["items"] as $playlist){
-			$playlists[] = array("name" => $playlist["snippet"]["title"], "id" => $playlist["id"]);
-		}
-	} while(isset($playlistinfo["nextPageToken"]));
-
 	if(!isset($_GET['chtype'])){
 		$playlistid = $channelinfo["items"][0]["contentDetails"]["relatedPlaylists"]["uploads"];
+	} else {
+		foreach($channelinfo["items"][0]["contentDetails"]["relatedPlaylists"] as $name => $id){
+			$playlists[] = array("name" => $name, "id" => $id);
+		}
+
+		do{
+			$playlistinfo = getreq(
+				"https://www.googleapis.com/youtube/v3/playlists?part=snippet&maxResults=50&channelId=" . $channelid .
+				"&key=" . API_KEY .
+				(
+					isset($playlistinfo["nextPageToken"])? "&pageToken=" . $playlistinfo["nextPageToken"] : ""
+				)
+			);
+
+			foreach($playlistinfo["items"] as $playlist){
+				$playlists[] = array("name" => $playlist["snippet"]["title"], "id" => $playlist["id"]);
+			}
+		} while(isset($playlistinfo["nextPageToken"]));
 	}
 }
 
@@ -90,23 +90,21 @@ echo "<?xml version=\"1.0\" encoding=\"utf-8\" ?>\n";
 		]]></description>
 		<pubDate><?= $pubdate ?></pubDate>
 	</item>
-<?php
-	}
-?>
+<?php	} ?>
 </channel>
 </rss>
 <?php
 } else {
-	header('Content-Type: text/html; charset=utf-8');
+header('Content-Type: text/html; charset=utf-8');
 ?>
 <!DOCTYPE html>
 <html>
 	<head>
-		<title>YouTube Feed Generator</title>
+		<title>YouTube channel and playlist feed generator</title>
 	</head>
 	<body>
 <?php		if(empty($_GET['channel'])){ ?>
-		<h1>>YouTube channel and playlist feed generator</h1>
+		<h1>YouTube channel and playlist feed generator</h1>
 		<p>This generates an rssfeed for YouTube Channels/Playlists via the YouTube API v3. This include channels that are not accessible via the rssfeeds from API v2.</p>
 		<p><strong>Example user:</strong> https://www.youtube.com/user/<strong>acedtect</strong><br>
 		<strong>Example channel:</strong> https://www.youtube.com/channel/<strong>UC-vIANCum1yBw_4DeJImc0Q</strong></p>
@@ -122,11 +120,9 @@ echo "<?xml version=\"1.0\" encoding=\"utf-8\" ?>\n";
 <?php			foreach($playlists as $playlist){ ?>
 			<input type="radio" name="playlist" value="<?= $playlist["id"] ?>" required><?= $playlist["name"] ?></input>
 <?php			} ?><br>
-		<input type="submit" value="Get rsseed">
+		<input type="submit" value="Get feed">
 		</form>
 <?php		} ?>
 	</body>
 </html>
-<?php
-}
-?>
+<?php	} ?>

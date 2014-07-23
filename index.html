@@ -23,6 +23,8 @@
 		<h2>YouTube channel and playlist feed generator - <a href="/ytchannel.php">ytchannel.php</a></h2>
 		<p>This generates an rssfeed for YouTube Channels/Playlists via the YouTube API v3.</p>
 		<b>Params:</b>
-		<p>(Required) channel=&lt;channelid&gt; - The YouTube channelid</p>
+		<p>(Optional) channel=&lt;channelid&gt; - The YouTube channelid. Requred when not providing a playlist id</p>
+		<p>(Optional) chtype=user or channel - If the channel param is a username istead of a channelid. Required to list all playlists</p>
+		<p>(Optional) playlist=&lt;playlistid&gt; - The YouTube playlistid. Required when not getting the uploads playlist</p>
 	</body>
 </html>
